@@ -1,10 +1,10 @@
 package be.yuwe.popularmovies.control;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -13,18 +13,22 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
 import be.yuwe.popularmovies.R;
 import be.yuwe.popularmovies.content.MovieContract;
-import be.yuwe.popularmovies.content.TheMovieDbLoader;
+import be.yuwe.popularmovies.content.TheMovieDbDiscoveryLoader;
 import be.yuwe.popularmovies.view.MoviePosterAdapter;
 
 public class PosterWallFragment extends Fragment implements LoaderManager.LoaderCallbacks<ArrayList<MovieContract.MovieSummary>> {
     private static final String LOG_TAG = PosterWallFragment.class.getSimpleName();
+    private static final int DISCOVER_MOVIES_LOADER = 0;
 
-    private static final int POPULAR_MOVIES_LOADER = 0;
+    interface Callbacks {
+        void showMovieDetail(MovieContract.MovieSummary selectedMovie);
+    }
 
     private MoviePosterAdapter moviesAdapter;
     private GridView grid;
@@ -45,10 +49,9 @@ public class PosterWallFragment extends Fragment implements LoaderManager.Loader
         grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent intent = new Intent(getActivity(), MovieDetail.class);
-                MovieContract.MovieSummary selectedSummary = moviesAdapter.getMovieSummary(position);
-                intent.putExtra(MovieContract.MovieSummary.class.getName(), selectedSummary);
-                startActivity(intent);
+                Callbacks callbacks = (Callbacks) getActivity();
+                MovieContract.MovieSummary selectedMovie = moviesAdapter.getMovieSummary(position);
+                callbacks.showMovieDetail(selectedMovie);
             }
         });
         return posterWallFragment;
@@ -56,20 +59,29 @@ public class PosterWallFragment extends Fragment implements LoaderManager.Loader
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
-        getLoaderManager().initLoader(POPULAR_MOVIES_LOADER, savedInstanceState, this);
+        getLoaderManager().initLoader(DISCOVER_MOVIES_LOADER, savedInstanceState, this);
         super.onActivityCreated(savedInstanceState);
     }
 
     @Override
+    public void onResume() {
+        updateMovieList();
+        super.onResume();
+    }
+
+    @Override
     public Loader<ArrayList<MovieContract.MovieSummary>> onCreateLoader(int id, Bundle args) {
-        final TheMovieDbLoader moviesLoader = new TheMovieDbLoader(getActivity());
+        final TheMovieDbDiscoveryLoader moviesLoader = new TheMovieDbDiscoveryLoader(getActivity());
         return moviesLoader;
     }
 
     @Override
     public void onLoadFinished(Loader<ArrayList<MovieContract.MovieSummary>> loader, ArrayList<MovieContract.MovieSummary> movieSummaries) {
-        if (moviesAdapter == null) return;
         moviesAdapter.setMovieSummaries(movieSummaries);
+        if (movieSummaries == null || movieSummaries.size() == 0)
+            Toast.makeText(getActivity(), R.string.result_no_movies, Toast.LENGTH_LONG).show();
+        if (grid != null)
+            grid.smoothScrollToPosition(0);
     }
 
     @Override
@@ -110,17 +122,18 @@ public class PosterWallFragment extends Fragment implements LoaderManager.Loader
             case (R.id.action_show_favorites):
                 item.setChecked(true);
                 Preferences.setSortOrder(getActivity(), Preferences.SORT_ORDER.BY_FAVORITES);
+                updateMovieList();
                 break;
             default:
                 return super.onOptionsItemSelected(item);
         }
-        if (grid!=null)
-            grid.smoothScrollToPosition(0);
         return true;
     }
 
     private void updateMovieList() {
-        getLoaderManager().restartLoader(POPULAR_MOVIES_LOADER, null, this);
+        Log.d(LOG_TAG, "Requesting to refresh my movies");
+        moviesAdapter.setMovieSummaries(null);
+        getLoaderManager().restartLoader(DISCOVER_MOVIES_LOADER, null, this);
     }
 
 

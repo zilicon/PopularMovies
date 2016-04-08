@@ -1,6 +1,7 @@
 package be.yuwe.popularmovies.view;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -27,6 +28,7 @@ public class MoviePosterAdapter extends BaseAdapter {
 
     public void setMovieSummaries(ArrayList<MovieContract.MovieSummary> movieSummaries) {
         this.movieSummaries = movieSummaries;
+        Log.d(LOG_TAG, "Got new movies to show");
         notifyDataSetChanged();
     }
 

@@ -4,4 +4,7 @@
     <string name="action_sort_popularity">Show most popular</string>
     <string name="action_sort_rating">Show highest rated</string>
     <string name="action_show_favorites">Show my favorites</string>
+    <string name="action_toggle_favorite">Toggle favorite</string>
+    <string name="result_no_movies">No movies to show</string>
+    <string name="action_share_video">Share video</string>
 </resources>
